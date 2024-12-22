@@ -1,5 +1,4 @@
-import axios from "axios";
-import cheerio from "cheerio";
+import * as cheerio from "npm:cheerio";
 
 const debugPrefix = "apple music: ";
 let debug = false;
@@ -45,7 +44,7 @@ function getRawPlaylist(document: string): RawPlaylist {
   const tracks: Track[] = [];
 
   const songList = $("div.songs-list-row").toArray();
-  songList.forEach((song) => {
+  songList.forEach((song: cheerio.Element) => {
     const lookArtist = $(song)
       .find("div.songs-list__col--artist")
       .find("a.songs-list-row__link");
@@ -65,8 +64,8 @@ function getRawPlaylist(document: string): RawPlaylist {
         .text()
         .trim()
         .split(":")
-        .map((value) => Number(value))
-        .reduce((acc, time) => 60 * acc + time),
+        .map((value: string): number => Number(value))
+        .reduce((acc: number, time: number): number => 60 * acc + time),
       url:
         $(song)
           .find("div.songs-list__col--album")
@@ -89,7 +88,7 @@ function getRawPlaylist(document: string): RawPlaylist {
       .trim(),
     creator: {
       name: creator.text().trim(),
-      url: "https://music.apple.com" + creator.attr("href") ?? "",
+      url: "https://music.apple.com" + (creator.attr("href") ?? ""),
     },
     tracks,
     numTracks: tracks.length,
@@ -112,7 +111,7 @@ function getRawAlbum(document: string): RawAlbum {
 
   const albumUrl = $("meta[property='og:url']").attr("content");
   const songList = $("div.songs-list-row").toArray();
-  songList.forEach((song) => {
+  songList.forEach((song: cheerio.Element) => {
     const track: Track = {
       artist,
       title: $(song)
@@ -125,8 +124,8 @@ function getRawAlbum(document: string): RawAlbum {
         .text()
         .trim()
         .split(":")
-        .map((value) => Number(value))
-        .reduce((acc, time) => 60 * acc + time),
+        .map((value: string): number => Number(value))
+        .reduce((acc: number, time: number): number => 60 * acc + time),
       url: albumUrl
         ? albumUrl +
             "?i=" +
@@ -134,8 +133,8 @@ function getRawAlbum(document: string): RawAlbum {
               $(song)
                 .find("div.songs-list__col--time")
                 .find("button.preview-button")
-                .attr("data-metrics-click") ?? "{ targetId: 0 }"
-            )["targetId"] ?? ""
+                .attr("data-metrics-click") ?? "{ \"targetId\": 0 }"
+            )["targetId"]
         : "",
       type: "song",
     };
@@ -157,7 +156,7 @@ function getRawAlbum(document: string): RawAlbum {
   return playlist;
 }
 
-function linkType(url: string) {
+function linkType(url: string): "song" | "playlist" | "album" {
   if (
     RegExp(
       /https?:\/\/music\.apple\.com\/.+?\/album\/.+?\/.+?\?i=([0-9]+)/
@@ -179,9 +178,8 @@ async function search(
   url: string
 ): Promise<RawPlaylist | RawAlbum | Track | null> {
   const urlType = linkType(url);
-  const page = await axios
-    .get<string>(url)
-    .then((res) => res.data)
+  const page = await fetch(url)
+    .then((res) => res.text())
     .catch(() => undefined);
 
   if (!page) {
@@ -192,6 +190,7 @@ async function search(
   }
 
   if (urlType === "playlist") {
+    console.log("playlist");
     return getRawPlaylist(page);
   }
 

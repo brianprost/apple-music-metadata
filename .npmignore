@@ -1,8 +1,0 @@
-src/
-tests/
-tslint.json
-tsconfig.json
-postbuild.js
-.github
-.eslintrc
-.eslintignore
